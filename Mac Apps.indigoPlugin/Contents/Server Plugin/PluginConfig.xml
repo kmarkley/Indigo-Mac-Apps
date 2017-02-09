@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<PluginConfig>
+    <Field id='stateLoopFreq' type='menu' defaultValue='10'>
+        <Label>Update frequency:</Label>
+        <List>
+            <Option value='2'>2 Seconds</Option>
+            <Option value='5'>5 Seconds</Option>
+            <Option value='10'>10 Seconds</Option>
+            <Option value='15'>15 Seconds</Option>
+            <Option value='20'>20 Seconds</Option>
+            <Option value='30'>30 Seconds</Option>
+            <Option value='60'>60 Seconds</Option>
+        </List>
+    </Field>
+    <Field id='stateLoopHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+        <Label>How often to check the on/off state of devices.</Label>
+    </Field>
+    <Field id='nothingLabel1' type='label'>
+        <Label> </Label>
+    </Field>
+    <Field id='pushStatsFreq' type='menu' defaultValue='30'>
+        <Label>Push stats frequency:</Label>
+        <List>
+            <Option value='5'>5 Seconds</Option>
+            <Option value='10'>10 Seconds</Option>
+            <Option value='15'>15 Seconds</Option>
+            <Option value='20'>20 Seconds</Option>
+            <Option value='30'>30 Seconds</Option>
+            <Option value='60'>1 Minute</Option>
+            <Option value='120'>2 Minutes</Option>
+            <Option value='300'>5 Minutes</Option>
+            <Option value='600'>10 Minutes</Option>
+        </List>
+    </Field>
+    <Field id='pushStatsHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+        <Label>How often to push process statistics to indigo.  Will never be more often than update frequency above.</Label>
+    </Field>
+    <Field id='nothingLabel2' type='label'>
+        <Label> </Label>
+    </Field>
+    <Field id='cores' type='textfield' defaultValue='1'>
+        <Label>Divide %CPU by cores:</Label>
+    </Field>
+    <Field id='coresHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+        <Label>Enter the number of cores to ensure that CPU has a maximum value of 100%.  Leave as 1 for native reporting.</Label>
+    </Field>
+    <Field id='nothingLabel3' type='label'>
+        <Label> </Label>
+    </Field>
+    <Field id='debugSeparator' type='separator' />
+	<Field id='showDebugInfo' type='checkbox'>
+		<Label>Enable debuging:</Label>
+		<Description>(not recommended)</Description>
+	</Field>
+</PluginConfig>

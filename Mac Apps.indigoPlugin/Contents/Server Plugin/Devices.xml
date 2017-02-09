@@ -1,0 +1,301 @@
+<?xml version='1.0'?>
+<Devices>
+    <Device id='application' type='relay'>
+        <Name>Application</Name>
+        <ConfigUI>
+            <Field id='deviceTypeText' type='label'>
+                <Label>Normal applications, i.e. with a .app extension, and usually in the Applications folder.</Label>
+            </Field>
+            <Field id='separator1' type='separator'/>
+            <Field id='applicationName' type='textfield'>
+                <Label>Application name:</Label>
+            </Field>
+            <Field id='appNameHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+                <Label>Exclude '.app' extension</Label>
+            </Field>
+            <Field id='useApplicationsFolder' type='checkbox' defaultValue='true'>
+                <Label>Use Applications folder:</Label>
+            </Field>
+            <Field id='directoryPath' type='textfield' visibleBindingId='useApplicationsFolder' visibleBindingValue='false' alwaysUseInDialogHeightCalc='true' defaultValue='/Applications/'>
+                <Label>Directory path:</Label>
+            </Field>
+            <Field id='dirPathHelp' type='label' visibleBindingId='useApplicationsFolder' visibleBindingValue='false' alwaysUseInDialogHeightCalc='true' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+                <Label>Include trailing '/'</Label>
+            </Field>
+            <Field id='separator2' type='separator'/>
+            <Field id='forceQuit' type='checkbox' defaultValue='false'>
+                <Label>Use force quit:</Label>
+                <Description>(may result in loss of data)</Description>
+            </Field>
+            <Field id='openBackground' type='checkbox' defaultValue='true'>
+                <Label>Open in background:</Label>
+                <Description>(uncheck to bring application to front)</Description>
+            </Field>
+            <Field id='restoreState' type='checkbox' defaultValue='false'>
+                <Label>Restore prior state:</Label>
+                <Description>(reopen windows and documents)</Description>
+            </Field>
+           <Field id='separator3' type='separator'/>
+            <Field id='useSpecialName' type='checkbox'>
+                <Label>Use special process name:</Label>
+                <Description>(if process name is different than Application Name)   </Description>
+            </Field>
+            <Field id='processName' type='textfield' visibleBindingId='useSpecialName' visibleBindingValue='true' alwaysUseInDialogHeightCalc='true'>
+                <Label>Process name:</Label>
+            </Field>
+            <Field id='applicationPath' type='textfield' hidden='true'>
+                <Label>Application path and name:</Label>
+            </Field>
+            <Field id='nothingLabel' type='label'>
+                <Label> </Label>
+            </Field>
+        </ConfigUI>
+        <States>
+            <!-- By default relay type devices automatically inherit the
+             state: onOffState.
+             -->
+            <State id='process_status'>
+                <ValueType>
+                    <List>
+                        <Option value='idle'>Idle</Option>
+                        <Option value='running'>Running</Option>
+                        <Option value='stopped'>Stopped</Option>
+                        <Option value='waiting'>Waiting</Option>
+                        <Option value='zombie'>Zombie</Option>
+                        <Option value='off'>Off</Option>
+                    </List>
+                </ValueType>
+                <TriggerLabel>Process Status</TriggerLabel>
+                <ControlPageLabel>Process Status</ControlPageLabel>
+            </State>
+            <State id='process_id'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Process ID</TriggerLabel>
+                <ControlPageLabel>Process ID</ControlPageLabel>
+            </State>
+            <State id='last_start'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Last start time</TriggerLabel>
+                <ControlPageLabel>Last start time</ControlPageLabel>
+            </State>
+            <State id='elapsed_secs'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Elapsed running time (seconds)</TriggerLabel>
+                <ControlPageLabel>Elapsed running time (seconds)</ControlPageLabel>
+            </State>
+            <State id='elapsed_time'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Elapsed running time (string)</TriggerLabel>
+                <ControlPageLabel>Elapsed running time (string)</ControlPageLabel>
+            </State>
+            <State id='percent_cpu'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent CPU used</TriggerLabel>
+                <ControlPageLabel>Percent CPU used</ControlPageLabel>
+            </State>
+            <State id='percent_mem'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent memory used</TriggerLabel>
+                <ControlPageLabel>Percent memory used</ControlPageLabel>
+            </State>
+        </States>
+    </Device>
+    <Device id='helper' type='relay'>
+        <Name>Helper</Name>
+        <ConfigUI>
+            <Field id='deviceTypeText' type='label'>
+                <Label>Helper applications are often launched when you open your session and are often 'faceless'. They are not located in the Applications folder but behave in some way as an application.</Label>
+            </Field>
+            <Field id='separator1' type='separator'/>
+            <Field id='applicationName' type='textfield'>
+                <Label>Helper name:</Label>
+            </Field>
+            <Field id='directoryPath' type='textfield'>
+                <Label>Directory path:</Label>
+            </Field>
+            <Field id='dirPathHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+                <Label>Include trailing '/'</Label>
+            </Field>
+            <Field id='forceQuit' type='checkbox' hidden='true' defaultValue='true'>
+                <Label>Use force quit:</Label>
+                <Description>(may result in loss of data)</Description>
+            </Field>
+            <Field id='processName' type='textfield' hidden='true'>
+                <Label>Process name:</Label>
+            </Field>
+            <Field id='applicationPath' type='textfield' hidden='true'>
+                <Label>Application path and name:</Label>
+            </Field>
+            <Field id='nothingLabel' type='label'>
+                <Label> </Label>
+            </Field>
+        </ConfigUI>
+        <States>
+            <!-- By default relay type devices automatically inherit the
+             state: onOffState.
+             -->
+            <State id='process_status'>
+                <ValueType>
+                    <List>
+                        <Option value='idle'>Idle</Option>
+                        <Option value='running'>Running</Option>
+                        <Option value='stopped'>Stopped</Option>
+                        <Option value='waiting'>Waiting</Option>
+                        <Option value='zombie'>Zombie</Option>
+                        <Option value='off'>Off</Option>
+                    </List>
+                </ValueType>
+                <TriggerLabel>Process Status</TriggerLabel>
+                <ControlPageLabel>Process Status</ControlPageLabel>
+            </State>
+            <State id='process_id'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Process ID</TriggerLabel>
+                <ControlPageLabel>Process ID</ControlPageLabel>
+            </State>
+            <State id='last_start'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Last start time</TriggerLabel>
+                <ControlPageLabel>Last start time</ControlPageLabel>
+            </State>
+            <State id='elapsed_secs'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Elapsed running time (seconds)</TriggerLabel>
+                <ControlPageLabel>Elapsed running time (seconds)</ControlPageLabel>
+            </State>
+            <State id='elapsed_time'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Elapsed running time (string)</TriggerLabel>
+                <ControlPageLabel>Elapsed running time (string)</ControlPageLabel>
+            </State>
+            <State id='percent_cpu'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent CPU used</TriggerLabel>
+                <ControlPageLabel>Percent CPU used</ControlPageLabel>
+            </State>
+            <State id='percent_mem'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent memory used</TriggerLabel>
+                <ControlPageLabel>Percent memory used</ControlPageLabel>
+            </State>
+        </States>
+    </Device>
+    <Device id='daemon' type='relay'>
+        <Name>Daemon</Name>
+        <ConfigUI>
+            <Field id='deviceTypeText' type='label'>
+                <Label>Uses 'launchctl' command to add and remove jobs to 'launchd'.  If the daemon was launched by another process, quitting may fail.</Label>
+            </Field>
+            <Field id='separator1' type='separator'/>
+            <Field id='applicationName' type='textfield'>
+                <Label>Daemon process name:</Label>
+            </Field>
+            <Field id='directoryPath' type='textfield'>
+                <Label>Directory path:</Label>
+            </Field>
+            <Field id='dirPathHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
+                <Label>Include trailing '/'</Label>
+            </Field>
+            <Field id='startArgs' type='textfield'>
+                <Label>Start command arguments:</Label>
+            </Field>
+            <Field id='forceQuit' type='checkbox' hidden='true' defaultValue='false'>
+                <Label>Use force quit:</Label>
+                <Description>(may result in loss of data)</Description>
+            </Field>
+            <Field id='processName' type='textfield' hidden='true'>
+                <Label>Process name:</Label>
+            </Field>
+            <Field id='applicationPath' type='textfield' hidden='true'>
+                <Label>Application path and name:</Label>
+            </Field>
+            <Field id='nothingLabel' type='label'>
+                <Label> </Label>
+            </Field>
+        </ConfigUI>
+        <States>
+            <!-- By default relay type devices automatically inherit the
+             state: onOffState.
+             -->
+            <State id='process_status'>
+                <ValueType>
+                    <List>
+                        <Option value='idle'>Idle</Option>
+                        <Option value='running'>Running</Option>
+                        <Option value='stopped'>Stopped</Option>
+                        <Option value='waiting'>Waiting</Option>
+                        <Option value='zombie'>Zombie</Option>
+                        <Option value='off'>Off</Option>
+                    </List>
+                </ValueType>
+                <TriggerLabel>Process Status</TriggerLabel>
+                <ControlPageLabel>Process Status</ControlPageLabel>
+            </State>
+            <State id='process_id'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Process ID</TriggerLabel>
+                <ControlPageLabel>Process ID</ControlPageLabel>
+            </State>
+            <State id='last_start'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Last start time</TriggerLabel>
+                <ControlPageLabel>Last start time</ControlPageLabel>
+            </State>
+            <State id='elapsed_secs'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Elapsed running time (seconds)</TriggerLabel>
+                <ControlPageLabel>Elapsed running time (seconds)</ControlPageLabel>
+            </State>
+            <State id='elapsed_time'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Elapsed running time (string)</TriggerLabel>
+                <ControlPageLabel>Elapsed running time (string)</ControlPageLabel>
+            </State>
+            <State id='percent_cpu'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent CPU used</TriggerLabel>
+                <ControlPageLabel>Percent CPU used</ControlPageLabel>
+            </State>
+            <State id='percent_mem'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent memory used</TriggerLabel>
+                <ControlPageLabel>Percent memory used</ControlPageLabel>
+            </State>
+        </States>
+    </Device>
+    <Device id='sysload' type='custom'>
+        <Name>System Load</Name>
+        <ConfigUI>
+            <Field id='deviceTypeText' type='label'>
+                <Label>Calculates total percent CPU and Memory utilization.</Label>
+            </Field>
+            <Field id='nothingLabel' type='label'>
+                <Label> </Label>
+            </Field>
+            <Field id='configText' type='label'>
+                <Label>No configuration, but you must click Save!</Label>
+            </Field>
+        </ConfigUI>
+        <States>
+            <!-- By default relay type devices automatically inherit the
+             state: onOffState.
+             -->
+            <State id='percent_cpu'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent CPU used</TriggerLabel>
+                <ControlPageLabel>Percent CPU used</ControlPageLabel>
+            </State>
+            <State id='percent_mem'>
+                <ValueType>Number</ValueType>
+                <TriggerLabel>Percent memory used</TriggerLabel>
+                <ControlPageLabel>Percent memory used</ControlPageLabel>
+            </State>
+            <State id='displayState'>
+                <ValueType>String</ValueType>
+                <TriggerLabel>Display State</TriggerLabel>
+                <ControlPageLabel>Display State</ControlPageLabel>
+            </State>
+        </States>
+        <UiDisplayStateId>displayState</UiDisplayStateId>
+    </Device>
+</Devices>
