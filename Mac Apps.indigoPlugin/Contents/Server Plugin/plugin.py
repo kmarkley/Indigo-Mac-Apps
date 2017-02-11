@@ -344,7 +344,7 @@ class Plugin(indigo.PluginBase):
             onCmd = offCmd = k_returnFalseCmd(message = "command not configured")
             if self.type in ['application','helper']:
                 onCmd = k_appOpenCmd(       background  = ['',' -g'][self.props.get('openBackground',True)],
-                                            fresh       = ['',' -F'][not self.props.get('restoreState',False)],
+                                            fresh       = ['',' -F'][self.props.get('openFresh',True)],
                                             apppath     = cmd_quote(self.props['applicationPath']) )
             elif self.type =='daemon':
                 onCmd = k_daemonStartCmd(   processname = cmd_quote(self.props['processName']),

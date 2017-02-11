@@ -23,17 +23,17 @@
                 <Label>Include trailing '/'</Label>
             </Field>
             <Field id='separator2' type='separator'/>
-            <Field id='forceQuit' type='checkbox' defaultValue='false'>
-                <Label>Use force quit:</Label>
-                <Description>(may result in loss of data)</Description>
+            <Field id='openFresh' type='checkbox' defaultValue='true'>
+                <Label>Open fresh:</Label>
+                <Description>(don't reopen windows and documents)</Description>
             </Field>
             <Field id='openBackground' type='checkbox' defaultValue='true'>
                 <Label>Open in background:</Label>
                 <Description>(uncheck to bring application to front)</Description>
             </Field>
-            <Field id='restoreState' type='checkbox' defaultValue='false'>
-                <Label>Restore prior state:</Label>
-                <Description>(reopen windows and documents)</Description>
+            <Field id='forceQuit' type='checkbox' defaultValue='false'>
+                <Label>Use force quit:</Label>
+                <Description>(may result in loss of data)</Description>
             </Field>
            <Field id='separator3' type='separator'/>
             <Field id='useSpecialName' type='checkbox'>
