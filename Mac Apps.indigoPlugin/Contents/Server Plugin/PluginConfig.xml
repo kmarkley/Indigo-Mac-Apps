@@ -13,10 +13,8 @@
         </List>
     </Field>
     <Field id='stateLoopHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
-        <Label>How often to check the on/off state of devices.</Label>
-    </Field>
-    <Field id='nothingLabel1' type='label'>
-        <Label> </Label>
+        <Label>How often to check the on/off state of devices.
+        </Label>
     </Field>
     <Field id='pushStatsFreq' type='menu' defaultValue='30'>
         <Label>Push stats frequency:</Label>
@@ -33,19 +31,15 @@
         </List>
     </Field>
     <Field id='pushStatsHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
-        <Label>How often to push process statistics to indigo.  Will never be more often than update frequency above.</Label>
-    </Field>
-    <Field id='nothingLabel2' type='label'>
-        <Label> </Label>
+        <Label>How often to push process statistics to indigo.  Will never be more often than update frequency above.
+        </Label>
     </Field>
     <Field id='cores' type='textfield' defaultValue='1'>
         <Label>Divide %CPU by cores:</Label>
     </Field>
     <Field id='coresHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
-        <Label>Enter the number of cores to ensure that CPU has a maximum value of 100%.  Leave as 1 for native reporting.</Label>
-    </Field>
-    <Field id='nothingLabel3' type='label'>
-        <Label> </Label>
+        <Label>Enter the number of cores to ensure that CPU has a maximum value of 100%.  Leave as 1 for native reporting.
+        </Label>
     </Field>
     <Field id='debugSeparator' type='separator' />
 	<Field id='showDebugInfo' type='checkbox'>

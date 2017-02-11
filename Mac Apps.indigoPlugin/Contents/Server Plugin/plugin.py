@@ -27,7 +27,7 @@ k_processStatusDict = { 'I': {'t': 'idle',      'i': indigo.kStateImageSel.AvPau
                         'Z': {'t': 'zombie',    'i': indigo.kStateImageSel.SensorTripped    },
                         'X': {'t': 'off',       'i': indigo.kStateImageSel.SensorOff        }   }
 
-k_psGetDataCmd      = "ps -awxc -opid,state,pcpu,pmem,lstart,etime,args"
+k_psGetDataCmd      = "/bin/ps -awxc -opid,state,pcpu,pmem,lstart,etime,args"
 k_psInfoGroupsKeys  =           (      'pid',    'state',             'pcpu',     'pmem',   'lstart',  'etime',   'args' )
 k_psDataGroupsRegex = re.compile(r"^ *([0-9]+) +([IRSTUZ])[sA-Z+<>]* +([0-9.,]+) +([0-9.,]+) +(.+?)   +([0-9:-]+) +(.+)$")
 
@@ -36,15 +36,15 @@ k_psSearch_appname  = "^.*[0-9] {processname}( -psn_[0-9_]*)?$".format
 k_psSearch_helper   = "^.*[0-9] {processname} ?( -.+)*$".format
 k_psSearch_daemon   = "^.*[0-9] {processname} ?{args}$".format
 
-k_appOpenCmd        = "open{background}{fresh} {apppath}".format
-k_appQuitCmd        = "osascript -e 'tell application \"{processname}\" to quit'".format
-k_daemonStartCmd    = "launchctl submit -l {processname} -- {apppath} {args}".format
-k_daemonStopCmd     = "launchctl remove {processname}".format
-k_killCmd           = "kill {pid}".format
+k_appOpenCmd        = "/usr/bin/open{background}{fresh} {apppath}".format
+k_appQuitCmd        = "/usr/bin/osascript -e 'tell application \"{processname}\" to quit'".format
+k_daemonStartCmd    = "/bin/launchctl submit -l {processname} -- {apppath} {args}".format
+k_daemonStopCmd     = "/bin/launchctl remove {processname}".format
+k_killCmd           = "/bin/kill {pid}".format
 
-k_returnFalseCmd    = "echo {message}; false".format
+k_returnFalseCmd    = "/bin/echo {message}; false".format
 
-k_awkSumColumn      = "echo {data} | awk '{{s+=${col}}} END {{print s}}'".format
+k_awkSumColumn      = "/bin/echo {data} | /usr/bin/awk '{{s+=${col}}} END {{print s}}'".format
 
 
 ################################################################################
@@ -71,8 +71,7 @@ class Plugin(indigo.PluginBase):
         
         self.deviceDict = dict()
         self._psData = ""
-        self._psTime = 0
-        self.ps_refresh = True
+        self._psRefresh = True
 
     ########################################
     def shutdown(self):
@@ -114,7 +113,7 @@ class Plugin(indigo.PluginBase):
                 loopStart = time.time()
                 doPushStats = loopStart >= lastPushStats  + self.pushStatsFreq
                 
-                self.ps_refresh = True
+                self.refresh_data()
                 for devId, dev in self.deviceDict.items():
                     dev.update(doPushStats)
                 
@@ -124,17 +123,18 @@ class Plugin(indigo.PluginBase):
         except self.StopThread:
             pass    # Optionally catch the StopThread exception and do any needed cleanup.
     
-    
     ########################################
     @property
     def psResults(self):
-        if self.ps_refresh:
+        if self._psRefresh:
             success, data = do_shell_script(k_psGetDataCmd)
             if success:
                 self._psData = data
-                self._psTime = time.time()
-                self.ps_refresh = False
-        return self._psData, self._psTime
+                self._psRefresh = False
+        return self._psData
+    
+    def refresh_data(self):
+        self._psRefresh = True
     
     ########################################
     # Device Methods
@@ -224,7 +224,7 @@ class Plugin(indigo.PluginBase):
         # STATUS REQUEST
         elif action.deviceAction == indigo.kUniversalAction.RequestStatus:
             self.logger.info('"{0}" status update'.format(dev.name))
-            self.ps_refresh = True
+            self.refresh_data()
             app.update(True)
         # UNKNOWN
         else:
@@ -260,36 +260,41 @@ class Plugin(indigo.PluginBase):
             self.logger     = plugin.logger
             
             self._psInfo    = ""
-            self._psTime    = 0
-            self._psRegex = ""
-            self.psRegex_refresh  = True
         
 
         ########################################
         def update(self, doStats=False):
-            self.states['onOffState'] = bool(self.psInfo)
-            
+            self.updateOnOff()
             if doStats:
-                if self.onState:
-                    stats = re_extract(self.psInfo, k_psDataGroupsRegex, k_psInfoGroupsKeys)
-                    self.status                 = stats['state']
-                    self.states['process_id']   = stats['pid']
-                    self.states['last_start']   = lstart_to_timestamp(stats['lstart'])
-                    self.states['elapsed_time'] = stats['etime']
-                    self.states['elapsed_secs'] = etime_to_seconds(stats['etime'])
-                    self.states['percent_cpu']  = float(stats['pcpu'])/self.plugin.cores
-                    self.states['percent_mem']  = float(stats['pmem'])
-                
-                else:
-                    self.status                 = 'X'
-                    self.states['process_id']   = ''
-                    self.states['elapsed_time'] = ''
-                    self.states['elapsed_secs'] = 0
-                    self.states['percent_cpu']  = 0.0
-                    self.states['percent_mem']  = 0.0
+                self.updateStats()
+            self.saveStates()
             
-                self.states['process_status']   = k_processStatusDict[self.status]['t']
-            
+        ########################################
+        def updateOnOff(self):
+            self.states['onOffState'] = bool(self.psInfo)
+        
+        ########################################
+        def updateStats(self):
+            if self.onState:
+                stats = re_extract(self.psInfo, k_psDataGroupsRegex, k_psInfoGroupsKeys)
+                self.status                 = stats['state']
+                self.states['process_id']   = stats['pid']
+                self.states['last_start']   = lstart_to_timestamp(stats['lstart'])
+                self.states['elapsed_time'] = stats['etime']
+                self.states['elapsed_secs'] = etime_to_seconds(stats['etime'])
+                self.states['percent_cpu']  = float(stats['pcpu'])/self.plugin.cores
+                self.states['percent_mem']  = float(stats['pmem'])
+            else:
+                self.status                 = 'X'
+                self.states['process_id']   = ''
+                self.states['elapsed_time'] = ''
+                self.states['elapsed_secs'] = 0
+                self.states['percent_cpu']  = 0.0
+                self.states['percent_mem']  = 0.0
+            self.states['process_status']   = k_processStatusDict[self.status]['t']
+        
+        ########################################
+        def saveStates(self):
             newStates = []
             for key, value in self.states.iteritems():
                 if self.states[key] != self.dev.states[key]:
@@ -304,8 +309,6 @@ class Plugin(indigo.PluginBase):
                         self.logger.info('"{0}" {1}'.format(self.name, ['off','on'][value]))
                     elif key == 'process_status':
                         self.dev.updateStateImageOnServer(k_processStatusDict[self.status]['i'])
-                    elif key == 'process_id':
-                        self.psRegex_refresh = True
                 
             if len(newStates) > 0:
                 if self.plugin.debug: # don't fill up plugin log unless actively debugging
@@ -326,8 +329,7 @@ class Plugin(indigo.PluginBase):
                 success, result = do_shell_script(self.onOffCmds[newState])
                 if success:
                     self.logger.info('{0} {1} "{2}"'.format(['quitting','launching'][newState], self.type, self.props['applicationName']))
-                    self.plugin.ps_refresh = True
-                    self.psRegex_refresh = True
+                    self.plugin.refresh_data()
                     self.plugin.sleep(0.25)
                     self.update(True)
                 else:
@@ -365,38 +367,26 @@ class Plugin(indigo.PluginBase):
         ########################################
         @property
         def psInfo(self):
-            psData, psTime = self.plugin.psResults
-            if psTime > self._psTime:
-                match = self.psRegex.search(psData)
-                if not match and self.states['process_id']:
-                    # perhaps pid is out of date (restarted between checks)
-                    # try again using process name
-                    self.states['process_id'] = ''
-                    self.psRegex_refresh = True
-                    match = self.psRegex.search(psData)
-                if match:
-                    self._psInfo = match.group(0)
-                else:
-                    self._psInfo = False
-                self._psTime = psTime
+            match = re.search(self.psPattern, self.plugin.psResults, re.MULTILINE)
+            if match:
+                self._psInfo = match.group(0)
+            else:
+                self.states['process_id'] = ''
+                self._psInfo = None
             return self._psInfo
     
         @property
-        def psRegex(self):
-            if self.psRegex_refresh:
-                if self.states['process_id']:
-                    exp = k_psSearch_pid( pid = self.states['process_id'] )
-                else:
-                    if self.type =='application':
-                        exp = k_psSearch_appname(   processname = self.props['processName'] )
-                    elif self.type =='helper':
-                        exp = k_psSearch_helper(    processname = self.props['processName'] )
-                    elif self.type == 'daemon':
-                        exp = k_psSearch_daemon(    processname = self.props['processName'],
-                                                    args        = self.props['startArgs']   )
-                self._psRegex = re.compile( exp, re.MULTILINE )
-                self.psRegex_refresh = False
-            return self._psRegex
+        def psPattern(self):
+            if self.states['process_id']:
+                return k_psSearch_pid( pid = self.states['process_id'] )
+            else:
+                if self.type =='application':
+                    return k_psSearch_appname(   processname = self.props['processName'] )
+                elif self.type =='helper':
+                    return k_psSearch_helper(    processname = self.props['processName'] )
+                elif self.type == 'daemon':
+                    return k_psSearch_daemon(    processname = self.props['processName'],
+                                                 args        = self.props['startArgs']   )
         
     
     ########################################
@@ -413,8 +403,6 @@ class Plugin(indigo.PluginBase):
             self.plugin     = plugin
             self.logger     = plugin.logger
             
-            self._psTime    = 0
-        
 
         ########################################
         def update(self, doStats=False):
@@ -423,15 +411,18 @@ class Plugin(indigo.PluginBase):
                 self.updateStats()
             self.saveStates()
         
+        ########################################
         def updateOnOff(self):
             pass
         
+        ########################################
         def updateStats(self):
-            psData, psTime = self.plugin.psResults
+            psData = self.plugin.psResults
             self.states['percent_cpu']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pcpu')+1))/self.plugin.cores
             self.states['percent_mem']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pmem')+1))
             self.states['displayState'] = "{:.1f}% | {:.1f}%".format(self.states['percent_cpu'],self.states['percent_mem'])
             
+        ########################################
         def saveStates(self):
             newStates = []
             for key, value in self.states.iteritems():
