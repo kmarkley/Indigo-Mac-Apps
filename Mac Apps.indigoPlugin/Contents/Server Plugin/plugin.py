@@ -211,21 +211,21 @@ class Plugin(indigo.PluginBase):
     ########################################
     def actionControlDimmerRelay(self, action, dev):
         self.logger.debug("actionControlDimmerRelay: "+dev.name)
-        app = self.deviceDict[dev.id]
+        appDev = self.deviceDict[dev.id]
         # TURN ON
         if action.deviceAction == indigo.kDimmerRelayAction.TurnOn:
-            app.onState = True
+            appDev.onState = True
         # TURN OFF
         elif action.deviceAction == indigo.kDimmerRelayAction.TurnOff:
-            app.onState = False
+            appDev.onState = False
         # TOGGLE
         elif action.deviceAction == indigo.kDimmerRelayAction.Toggle:
-            app.onState = not app.onState
+            appDev.onState = not appDev.onState
         # STATUS REQUEST
         elif action.deviceAction == indigo.kUniversalAction.RequestStatus:
             self.logger.info('"{0}" status update'.format(dev.name))
             self.refresh_data()
-            app.update(True)
+            appDev.update(True)
         # UNKNOWN
         else:
             self.logger.debug('"{0}" {1} request ignored'.format(dev.name, str(action.deviceAction)))
@@ -275,7 +275,7 @@ class Plugin(indigo.PluginBase):
         
         ########################################
         def updateStats(self):
-            if self.onState:
+            if self.psInfo:
                 stats = re_extract(self.psInfo, k_psDataGroupsRegex, k_psInfoGroupsKeys)
                 self.status                 = stats['state']
                 self.states['process_id']   = stats['pid']
