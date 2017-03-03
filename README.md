@@ -1,11 +1,11 @@
 # Mac Apps
 
-This plugin uses shell commands (**ps**) to determine if processes are running on the machine running Indigo Server and obtain some statistics about them.  Processes may be launched or quit by turning the associated Indigo device on or off.
+This plugin uses shell commands (`ps`) to determine if processes are running on the machine running Indigo Server and obtain some statistics about them.  Processes may be launched or quit by turning the associated Indigo device on or off.
 
 ## Plugin Configuration
 
 * **Update frequency**  
-How often to check whether disks have been mounted or unmounted.
+How often to check whether applications are running.
 
 * **Push stats frequency**  
 How often to updtate the statistics in the device states.  Statistics will change every time for running applications, which can mean more communication with Indigo.  Reduce this setting if you start seeing "ServerCommunication" errors in the log.
@@ -28,10 +28,10 @@ This is for standard applications with a **.app** extension (likely hidden) that
 The name of the application (exclude the **.app** extension).
 
 * **Use Applications folder**  
-Check if the application is in the /Applications folder.
+Check if the application is in the `/Applications` folder.
 
 * **Directory path**  
-For applications **not** in the /Applications folder, specify the full path to the directory containing the application.
+For applications **not** in the `/Applications` folder, specify the full path to the directory containing the application.
 
 * **Open fresh**  
 Check to launch the application 'fresh', without restoring previous windows and documents.
@@ -43,10 +43,10 @@ Do not bring application to the front after launching.
 Force the application to close even if there are unsaved changes.
 
 * **Use special process name**  
-Occaisionally applications will have a different name reported by the **ps** command than they have in the Finder.  If so, check this box.
+Occaisionally applications will have a different name reported by the `ps` command than they have in the Finder.  If so, check this box.
 
 * **Process name**  
-If the applications has a different name in **ps**, list it here.
+If the applications has a different name in `ps`, list it here.
 
 #### States
 
@@ -73,7 +73,7 @@ The percent of memory the process is using as a float.
 
 ### Helper
 
-This is for helper applications *without* a **.app** extension, *not* in the /Applications folder, and probably faceless.
+This is for helper applications *without* a **.app** extension, *not* in the `/Applications` folder, and probably faceless.
 
 #### Configuration
 
@@ -90,7 +90,7 @@ Same as above.
 
 ### Daemon
 
-Uses **launchctl** command to add and remove jobs to **launchd**.  If the daemon was launched by another process, quitting may fail.
+Uses `launchctl` command to add and remove jobs to `launchd`.  If the daemon was launched by another process, quitting may fail.
 
 #### Configuration
 

@@ -35,12 +35,9 @@
         <Label>How often to push process statistics to indigo.  Will never be more often than update frequency above.
         </Label>
     </Field>
-    <Field id='cores' type='textfield' defaultValue='1'>
+    <Field id='divideByCores' type='checkbox' defaultValue='true'>
         <Label>Divide %CPU by cores:</Label>
-    </Field>
-    <Field id='coresHelp' type='label' fontColor='darkgray' fontSize='small' alignWithControl='true'>
-        <Label>Enter the number of cores to ensure that CPU has a maximum value of 100%.  Leave as 1 for native reporting.
-        </Label>
+        <Description>Ensure that CPU has a max of 100%.  Uncheck for native reporting.   </Description>
     </Field>
     <Field id='debugSeparator' type='separator' />
 	<Field id='showDebugInfo' type='checkbox'>

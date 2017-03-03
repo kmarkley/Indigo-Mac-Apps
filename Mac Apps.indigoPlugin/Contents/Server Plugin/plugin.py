@@ -19,17 +19,17 @@ except ImportError:
 ###############################################################################
 # globals
 
-k_processStatusDict = { 'I': {'t': 'idle',      'i': indigo.kStateImageSel.AvPaused         },
-                        'R': {'t': 'running',   'i': indigo.kStateImageSel.SensorOn         },
-                        'S': {'t': 'running',   'i': indigo.kStateImageSel.SensorOn         },
-                        'T': {'t': 'stopped',   'i': indigo.kStateImageSel.AvStopped        },
-                        'U': {'t': 'waiting',   'i': indigo.kStateImageSel.AvPaused         },
-                        'Z': {'t': 'zombie',    'i': indigo.kStateImageSel.SensorTripped    },
-                        'X': {'t': 'off',       'i': indigo.kStateImageSel.SensorOff        }   }
+k_processStatusDict = { 'I': {'txt': 'idle',      'img': indigo.kStateImageSel.AvPaused         },
+                        'R': {'txt': 'running',   'img': indigo.kStateImageSel.SensorOn         },
+                        'S': {'txt': 'running',   'img': indigo.kStateImageSel.SensorOn         },
+                        'T': {'txt': 'stopped',   'img': indigo.kStateImageSel.AvStopped        },
+                        'U': {'txt': 'waiting',   'img': indigo.kStateImageSel.AvPaused         },
+                        'Z': {'txt': 'zombie',    'img': indigo.kStateImageSel.SensorTripped    },
+                        'X': {'txt': 'off',       'img': indigo.kStateImageSel.SensorOff        }   }
 
 k_psGetDataCmd      = "/bin/ps -awxc -opid,state,pcpu,pmem,lstart,etime,args"
 k_psInfoGroupsKeys  =           (      'pid',    'state',             'pcpu',     'pmem',   'lstart',  'etime',   'args' )
-k_psDataGroupsRegex = re.compile(r"^ *([0-9]+) +([IRSTUZ])[sA-Z+<>]* +([0-9.,]+) +([0-9.,]+) +(.+?)   +([0-9:-]+) +(.+)$")
+k_psInfoGroupsRegex = re.compile(r"^ *([0-9]+) +([IRSTUZ])[sA-Z+<>]* +([0-9.,]+) +([0-9.,]+) +(.+?)   +([0-9:-]+) +(.+)$")
 
 k_psSearch_pid      = "^ *{pid} .*$".format
 k_psSearch_appname  = "^.*[0-9] {processname}( -psn_[0-9_]*)?$".format
@@ -45,6 +45,8 @@ k_killCmd           = "/bin/kill {pid}".format
 k_returnFalseCmd    = "/bin/echo {message}; false".format
 
 k_awkSumColumn      = "/bin/echo {data} | /usr/bin/awk '{{s+=${col}}} END {{print s}}'".format
+
+k_countCoresCmd     = "/usr/sbin/sysctl -n hw.ncpu"
 
 
 ################################################################################
@@ -63,7 +65,8 @@ class Plugin(indigo.PluginBase):
         
         self.stateLoopFreq  = int(self.pluginPrefs.get('stateLoopFreq','10'))
         self.pushStatsFreq  = int(self.pluginPrefs.get('pushStatsFreq','30'))
-        self.cores          = float(self.pluginPrefs.get('cores','1'))
+        self.cores          = countCores()
+        self.divisor        = [1.,self.cores][self.pluginPrefs.get('divideByCores',True)]
         self.debug          = self.pluginPrefs.get('showDebugInfo',False)
         self.logger.debug("startup")
         if self.debug:
@@ -84,7 +87,8 @@ class Plugin(indigo.PluginBase):
         if not userCancelled:
             self.stateLoopFreq  = int(valuesDict['stateLoopFreq'])
             self.pushStatsFreq  = int(valuesDict['pushStatsFreq'])
-            self.cores          = float(valuesDict['cores'])
+            self.divisor        = [1.,self.cores][valuesDict['divideByCores']]
+            self.logger.debug("divisor: "+str(self.divisor))
             self.debug          = valuesDict['showDebugInfo']
             if self.debug:
                 self.logger.debug("Debug logging enabled")
@@ -94,11 +98,6 @@ class Plugin(indigo.PluginBase):
         self.logger.debug("validatePrefsConfigUi")
         errorsDict = indigo.Dict()
         
-        if not valuesDict.get('cores',False):
-            valuesDict['cores'] = '1'
-        if not valuesDict['cores'].isdigit() or not (int(valuesDict['cores']) >= 1):
-            errorsDict['cores'] = "Must be a positive integer"
-                
         if len(errorsDict) > 0:
             self.logger.debug('validate prefs config error: \n{0}'.format(str(errorsDict)))
             return (False, valuesDict, errorsDict)
@@ -276,13 +275,13 @@ class Plugin(indigo.PluginBase):
         ########################################
         def updateStats(self):
             if self.psInfo:
-                stats = re_extract(self.psInfo, k_psDataGroupsRegex, k_psInfoGroupsKeys)
+                stats = re_extract(self.psInfo, k_psInfoGroupsRegex, k_psInfoGroupsKeys)
                 self.status                 = stats['state']
                 self.states['process_id']   = stats['pid']
                 self.states['last_start']   = lstart_to_timestamp(stats['lstart'])
                 self.states['elapsed_time'] = stats['etime']
                 self.states['elapsed_secs'] = etime_to_seconds(stats['etime'])
-                self.states['percent_cpu']  = float(stats['pcpu'])/self.plugin.cores
+                self.states['percent_cpu']  = float(stats['pcpu'])/self.plugin.divisor
                 self.states['percent_mem']  = float(stats['pmem'])
             else:
                 self.status                 = 'X'
@@ -291,7 +290,7 @@ class Plugin(indigo.PluginBase):
                 self.states['elapsed_secs'] = 0
                 self.states['percent_cpu']  = 0.0
                 self.states['percent_mem']  = 0.0
-            self.states['process_status']   = k_processStatusDict[self.status]['t']
+            self.states['process_status']   = k_processStatusDict[self.status]['txt']
         
         ########################################
         def saveStates(self):
@@ -308,7 +307,7 @@ class Plugin(indigo.PluginBase):
                     if key == 'onOffState':
                         self.logger.info('"{0}" {1}'.format(self.name, ['off','on'][value]))
                     elif key == 'process_status':
-                        self.dev.updateStateImageOnServer(k_processStatusDict[self.status]['i'])
+                        self.dev.updateStateImageOnServer(k_processStatusDict[self.status]['img'])
                 
             if len(newStates) > 0:
                 if self.plugin.debug: # don't fill up plugin log unless actively debugging
@@ -418,7 +417,7 @@ class Plugin(indigo.PluginBase):
         ########################################
         def updateStats(self):
             psData = self.plugin.psResults
-            self.states['percent_cpu']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pcpu')+1))/self.plugin.cores
+            self.states['percent_cpu']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pcpu')+1))/self.plugin.divisor
             self.states['percent_mem']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pmem')+1))
             self.states['displayState'] = "{:.1f}% | {:.1f}%".format(self.states['percent_cpu'],self.states['percent_mem'])
             
@@ -492,3 +491,12 @@ def sumColumn(data, col):
     else:
         self.logger.error(result)
         return 0.0
+
+########################################
+def countCores():
+    success, result = do_shell_script(k_countCoresCmd)
+    if success:
+        return float(result)
+    else:
+        self.logger.error(result)
+        return 1.0
