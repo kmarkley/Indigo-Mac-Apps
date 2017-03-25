@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-####################
+###############################################################################
 # http://www.indigodomo.com
 
 import indigo
@@ -51,16 +51,16 @@ k_countCoresCmd     = "/usr/sbin/sysctl -n hw.ncpu"
 
 ################################################################################
 class Plugin(indigo.PluginBase):
-    ########################################
+    #------------------------------------------------------------------------------
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
     
     def __del__(self):
         indigo.PluginBase.__del__(self)
 
-    ########################################
+    #------------------------------------------------------------------------------
     # Start, Stop and Config changes
-    ########################################
+    #------------------------------------------------------------------------------
     def startup(self):
         
         self.stateLoopFreq  = int(self.pluginPrefs.get('stateLoopFreq','10'))
@@ -76,12 +76,12 @@ class Plugin(indigo.PluginBase):
         self._psData = ""
         self._psRefresh = True
 
-    ########################################
+    #------------------------------------------------------------------------------
     def shutdown(self):
         self.logger.debug("shutdown")
         self.pluginPrefs["showDebugInfo"] = self.debug
 
-    ########################################
+    #------------------------------------------------------------------------------
     def closedPrefsConfigUi(self, valuesDict, userCancelled):
         self.logger.debug("closedPrefsConfigUi")
         if not userCancelled:
@@ -93,7 +93,7 @@ class Plugin(indigo.PluginBase):
             if self.debug:
                 self.logger.debug("Debug logging enabled")
 
-    ########################################
+    #------------------------------------------------------------------------------
     def validatePrefsConfigUi(self, valuesDict):
         self.logger.debug("validatePrefsConfigUi")
         errorsDict = indigo.Dict()
@@ -103,7 +103,7 @@ class Plugin(indigo.PluginBase):
             return (False, valuesDict, errorsDict)
         return (True, valuesDict)
     
-    ########################################
+    #------------------------------------------------------------------------------
     def runConcurrentThread(self):
         lastPushStats = 0
         self.sleep(self.stateLoopFreq)
@@ -122,7 +122,7 @@ class Plugin(indigo.PluginBase):
         except self.StopThread:
             pass    # Optionally catch the StopThread exception and do any needed cleanup.
     
-    ########################################
+    #------------------------------------------------------------------------------
     @property
     def psResults(self):
         if self._psRefresh:
@@ -135,9 +135,9 @@ class Plugin(indigo.PluginBase):
     def refresh_data(self):
         self._psRefresh = True
     
-    ########################################
+    #------------------------------------------------------------------------------
     # Device Methods
-    ########################################
+    #------------------------------------------------------------------------------
     def deviceStartComm(self, dev):
         self.logger.debug("deviceStartComm: "+dev.name)
         if dev.version != self.pluginVersion:
@@ -149,13 +149,13 @@ class Plugin(indigo.PluginBase):
                 self.deviceDict[dev.id] = self.ApplicationDevice(dev, self)
             self.deviceDict[dev.id].update(True)
     
-    ########################################
+    #------------------------------------------------------------------------------
     def deviceStopComm(self, dev):
         self.logger.debug("deviceStopComm: "+dev.name)
         if dev.id in self.deviceDict:
             del self.deviceDict[dev.id]
     
-    ########################################
+    #------------------------------------------------------------------------------
     def validateDeviceConfigUi(self, valuesDict, deviceTypeId, devId, runtime=False):
         self.logger.debug("validateDeviceConfigUi: " + deviceTypeId)
         errorsDict = indigo.Dict()
@@ -193,7 +193,7 @@ class Plugin(indigo.PluginBase):
         else:
             return (True, valuesDict)
     
-    ########################################
+    #------------------------------------------------------------------------------
     def updateDeviceVersion(self, dev):
         theProps = dev.pluginProps
         # update states
@@ -205,9 +205,9 @@ class Plugin(indigo.PluginBase):
         dev.replacePluginPropsOnServer(theProps)
     
     
-    ########################################
+    #------------------------------------------------------------------------------
     # Action Methods
-    ########################################
+    #------------------------------------------------------------------------------
     def actionControlDimmerRelay(self, action, dev):
         self.logger.debug("actionControlDimmerRelay: "+dev.name)
         appDev = self.deviceDict[dev.id]
@@ -229,9 +229,9 @@ class Plugin(indigo.PluginBase):
         else:
             self.logger.debug('"{0}" {1} request ignored'.format(dev.name, str(action.deviceAction)))
     
-    ########################################
+    #------------------------------------------------------------------------------
     # Menu Methods
-    ########################################
+    #------------------------------------------------------------------------------
     def toggleDebug(self):
         if self.debug:
             self.logger.debug("Debug logging disabled")
@@ -241,12 +241,12 @@ class Plugin(indigo.PluginBase):
             self.logger.debug("Debug logging enabled")
     
     
-    ########################################
+    ###############################################################################
     # Classes
-    ########################################
-    ########################################
+    ###############################################################################
     class ApplicationDevice(object):
-        ########################################
+        
+        #------------------------------------------------------------------------------
         def __init__(self, instance, plugin):
             self.dev        = instance
             self.name       = self.dev.name
@@ -260,19 +260,18 @@ class Plugin(indigo.PluginBase):
             
             self._psInfo    = ""
         
-
-        ########################################
+        #------------------------------------------------------------------------------
         def update(self, doStats=False):
             self.updateOnOff()
             if doStats:
                 self.updateStats()
             self.saveStates()
             
-        ########################################
+        #------------------------------------------------------------------------------
         def updateOnOff(self):
             self.states['onOffState'] = bool(self.psInfo)
         
-        ########################################
+        #------------------------------------------------------------------------------
         def updateStats(self):
             if self.psInfo:
                 stats = re_extract(self.psInfo, k_psInfoGroupsRegex, k_psInfoGroupsKeys)
@@ -292,7 +291,7 @@ class Plugin(indigo.PluginBase):
                 self.states['percent_mem']  = 0.0
             self.states['process_status']   = k_processStatusDict[self.status]['txt']
         
-        ########################################
+        #------------------------------------------------------------------------------
         def saveStates(self):
             newStates = []
             for key, value in self.states.iteritems():
@@ -317,9 +316,9 @@ class Plugin(indigo.PluginBase):
                 self.dev.updateStatesOnServer(newStates)
                 self.states = self.dev.states
         
-        ########################################
+        #------------------------------------------------------------------------------
         # Class Properties
-        ########################################
+        #------------------------------------------------------------------------------
         def onStateGet(self):
             return self.states['onOffState']
         
@@ -337,7 +336,7 @@ class Plugin(indigo.PluginBase):
         
         onState = property(onStateGet, onStateSet)
         
-        ########################################
+        #------------------------------------------------------------------------------
         @property
         def onOffCmds(self):
             onCmd = offCmd = k_returnFalseCmd(message = "command not configured")
@@ -363,7 +362,7 @@ class Plugin(indigo.PluginBase):
             
             return (offCmd,onCmd)
         
-        ########################################
+        #------------------------------------------------------------------------------
         @property
         def psInfo(self):
             match = re.search(self.psPattern, self.plugin.psResults, re.MULTILINE)
@@ -388,10 +387,10 @@ class Plugin(indigo.PluginBase):
                                                  args        = self.props['startArgs']   )
         
     
-    ########################################
-    ########################################
+    ###############################################################################
     class SystemLoadDevice(object):
-        ########################################
+        
+        #------------------------------------------------------------------------------
         def __init__(self, instance, plugin):
             self.dev        = instance
             self.name       = self.dev.name
@@ -402,26 +401,25 @@ class Plugin(indigo.PluginBase):
             self.plugin     = plugin
             self.logger     = plugin.logger
             
-
-        ########################################
+        #------------------------------------------------------------------------------
         def update(self, doStats=False):
             self.updateOnOff()
             if doStats:
                 self.updateStats()
             self.saveStates()
         
-        ########################################
+        #------------------------------------------------------------------------------
         def updateOnOff(self):
             pass
         
-        ########################################
+        #------------------------------------------------------------------------------
         def updateStats(self):
             psData = self.plugin.psResults
-            self.states['percent_cpu']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pcpu')+1))/self.plugin.divisor
-            self.states['percent_mem']  = float(sumColumn(psData, k_psInfoGroupsKeys.index('pmem')+1))
+            self.states['percent_cpu']  = sumColumn(psData, k_psInfoGroupsKeys.index('pcpu'))/self.plugin.divisor
+            self.states['percent_mem']  = sumColumn(psData, k_psInfoGroupsKeys.index('pmem'))
             self.states['displayState'] = "{:.1f}% | {:.1f}%".format(self.states['percent_cpu'],self.states['percent_mem'])
             
-        ########################################
+        #------------------------------------------------------------------------------
         def saveStates(self):
             newStates = []
             for key, value in self.states.iteritems():
@@ -439,9 +437,9 @@ class Plugin(indigo.PluginBase):
                 self.dev.updateStatesOnServer(newStates)
                 self.states = self.dev.states
         
-        ########################################
+        #------------------------------------------------------------------------------
         # Class Properties
-        ########################################
+        #------------------------------------------------------------------------------
         def onStateGet(self):
             return None
         def onStateSet(self,newState):
@@ -450,22 +448,22 @@ class Plugin(indigo.PluginBase):
         
 
 
-########################################
+###############################################################################
 # Utilities
-########################################
+###############################################################################
 def do_shell_script(cmd):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, err = p.communicate()
     return (not bool(p.returncode)), out.rstrip()
 
-########################################
+#------------------------------------------------------------------------------
 def re_extract(source, rule, keys):
     results = {}
     for key, value in zip(keys,rule.match(source).groups()):
         results[key] = value.strip()
     return results
 
-########################################
+#------------------------------------------------------------------------------
 def etime_to_seconds(etime):
     try:
         days, etime = etime.split('-')
@@ -479,20 +477,21 @@ def etime_to_seconds(etime):
     dtime = timedelta (days=int(days), hours=int(hours), minutes=int(minutes), seconds=int(seconds))
     return int(dtime.total_seconds())
 
-########################################
+#------------------------------------------------------------------------------
 def lstart_to_timestamp(lstart):
     return str(datetime.strptime(lstart, '%c'))
 
-########################################
-def sumColumn(data, col):
-    success, result = do_shell_script(k_awkSumColumn(data=cmd_quote(data), col=col))
+#------------------------------------------------------------------------------
+def sumColumn(data, col=0):
+    # col argument is like index -- i.e. first column is 0
+    success, result = do_shell_script(k_awkSumColumn(data=cmd_quote(data), col=col+1))
     if success:
-        return result
+        return float(result)
     else:
         self.logger.error(result)
         return 0.0
 
-########################################
+#------------------------------------------------------------------------------
 def countCores():
     success, result = do_shell_script(k_countCoresCmd)
     if success:
