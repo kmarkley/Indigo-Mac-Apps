@@ -54,7 +54,7 @@ class Plugin(indigo.PluginBase):
     #------------------------------------------------------------------------------
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-    
+
     def __del__(self):
         indigo.PluginBase.__del__(self)
 
@@ -62,7 +62,7 @@ class Plugin(indigo.PluginBase):
     # Start, Stop and Config changes
     #------------------------------------------------------------------------------
     def startup(self):
-        
+
         self.stateLoopFreq  = int(self.pluginPrefs.get('stateLoopFreq','10'))
         self.pushStatsFreq  = int(self.pluginPrefs.get('pushStatsFreq','30'))
         self.cores          = countCores()
@@ -71,7 +71,7 @@ class Plugin(indigo.PluginBase):
         self.logger.debug("startup")
         if self.debug:
             self.logger.debug("Debug logging enabled")
-        
+
         self.deviceDict = dict()
         self._psData = ""
         self._psRefresh = True
@@ -97,12 +97,12 @@ class Plugin(indigo.PluginBase):
     def validatePrefsConfigUi(self, valuesDict):
         self.logger.debug("validatePrefsConfigUi")
         errorsDict = indigo.Dict()
-        
+
         if len(errorsDict) > 0:
             self.logger.debug('validate prefs config error: \n{0}'.format(str(errorsDict)))
             return (False, valuesDict, errorsDict)
         return (True, valuesDict)
-    
+
     #------------------------------------------------------------------------------
     def runConcurrentThread(self):
         lastPushStats = 0
@@ -111,17 +111,17 @@ class Plugin(indigo.PluginBase):
             while True:
                 loopStart = time.time()
                 doPushStats = loopStart >= lastPushStats  + self.pushStatsFreq
-                
+
                 self.refresh_data()
                 for devId, dev in self.deviceDict.items():
                     dev.update(doPushStats)
-                
+
                 lastPushStats = [lastPushStats, loopStart][doPushStats]
-                
+
                 self.sleep( loopStart + self.stateLoopFreq - time.time() )
         except self.StopThread:
             pass    # Optionally catch the StopThread exception and do any needed cleanup.
-    
+
     #------------------------------------------------------------------------------
     @property
     def psResults(self):
@@ -131,10 +131,10 @@ class Plugin(indigo.PluginBase):
                 self._psData = data
                 self._psRefresh = False
         return self._psData
-    
+
     def refresh_data(self):
         self._psRefresh = True
-    
+
     #------------------------------------------------------------------------------
     # Device Methods
     #------------------------------------------------------------------------------
@@ -148,22 +148,22 @@ class Plugin(indigo.PluginBase):
             else:
                 self.deviceDict[dev.id] = self.ApplicationDevice(dev, self)
             self.deviceDict[dev.id].update(True)
-    
+
     #------------------------------------------------------------------------------
     def deviceStopComm(self, dev):
         self.logger.debug("deviceStopComm: "+dev.name)
         if dev.id in self.deviceDict:
             del self.deviceDict[dev.id]
-    
+
     #------------------------------------------------------------------------------
     def validateDeviceConfigUi(self, valuesDict, deviceTypeId, devId, runtime=False):
         self.logger.debug("validateDeviceConfigUi: " + deviceTypeId)
         errorsDict = indigo.Dict()
-        
+
         if deviceTypeId != 'sysload':
             if not valuesDict.get('applicationName',''):
                 errorsDict['applicationName'] = "Required"
-        
+
             if valuesDict.get('useApplicationsFolder',False):
                 valuesDict['directoryPath'] = "/Applications/"
             elif not valuesDict.get('directoryPath',''):
@@ -171,40 +171,40 @@ class Plugin(indigo.PluginBase):
             elif (valuesDict['directoryPath'])[-1:] != '/':
                 valuesDict['directoryPath'] = valuesDict['directoryPath'] + "/"
             valuesDict['applicationPath'] = valuesDict['directoryPath'] + valuesDict['applicationName']
-        
+
             if deviceTypeId == 'application':
                 if (valuesDict['applicationName'])[-4:] == ".app":
                     valuesDict['applicationName'] = (valuesDict['applicationName'])[:-4]
                 if (valuesDict['applicationPath'])[-4:] != ".app":
                     valuesDict['applicationPath'] = valuesDict['applicationPath'] + ".app"
-                
+
             elif deviceTypeId == 'helper':
                 valuesDict['forceQuit'] = True
-        
+
             elif deviceTypeId == 'daemon':
                 valuesDict['forceQuit'] = False
-            
+
             if not valuesDict.get('useSpecialName',True) or not valuesDict.get('processName',''):
                 valuesDict['processName'] = valuesDict['applicationName']
-        
+
         if len(errorsDict) > 0:
             self.logger.debug('validate device config error: \n{0}'.format(str(errorsDict)))
             return (False, valuesDict, errorsDict)
         else:
             return (True, valuesDict)
-    
+
     #------------------------------------------------------------------------------
     def updateDeviceVersion(self, dev):
         theProps = dev.pluginProps
         # update states
         dev.stateListOrDisplayStateIdChanged()
         # check for props
-        
+
         # push to server
         theProps["version"] = self.pluginVersion
         dev.replacePluginPropsOnServer(theProps)
-    
-    
+
+
     #------------------------------------------------------------------------------
     # Action Methods
     #------------------------------------------------------------------------------
@@ -228,7 +228,7 @@ class Plugin(indigo.PluginBase):
         # UNKNOWN
         else:
             self.logger.debug('"{0}" {1} request ignored'.format(dev.name, str(action.deviceAction)))
-    
+
     #------------------------------------------------------------------------------
     # Menu Methods
     #------------------------------------------------------------------------------
@@ -239,13 +239,13 @@ class Plugin(indigo.PluginBase):
         else:
             self.debug = True
             self.logger.debug("Debug logging enabled")
-    
-    
+
+
     ###############################################################################
     # Classes
     ###############################################################################
     class ApplicationDevice(object):
-        
+
         #------------------------------------------------------------------------------
         def __init__(self, instance, plugin):
             self.dev        = instance
@@ -254,43 +254,64 @@ class Plugin(indigo.PluginBase):
             self.props      = self.dev.pluginProps
             self.states     = self.dev.states
             self.status     = 'X'
-            
+
             self.plugin     = plugin
             self.logger     = plugin.logger
-            
+
+            self._refresh   = True
             self._psInfo    = ""
-        
+            self._pid       = ""
+
+            self.offCmd     = k_returnFalseCmd(message = "command not available")
+
+            if self.type =='application':
+                self.namePattern    = k_psSearch_appname(   processname = self.props['processName'] )
+                self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
+                                                            fresh       = ['',' -F'][self.props.get('openFresh',True)],
+                                                            apppath     = cmd_quote(self.props['applicationPath']) )
+                if not self.props['forceQuit']:
+                    self.offCmd     = k_appQuitCmd(         processname = self.props['processName'] )
+            elif self.type =='helper':
+                self.namePattern    = k_psSearch_helper(    processname = self.props['processName'] )
+                self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
+                                                            fresh       = ['',' -F'][self.props.get('openFresh',True)],
+                                                            apppath     = cmd_quote(self.props['applicationPath']) )
+            elif self.type == 'daemon':
+                self.namePattern    = k_psSearch_daemon(    processname = self.props['processName'],
+                                                            args        = self.props['startArgs']   )
+                self.onCmd          = k_daemonStartCmd(     processname = cmd_quote(self.props['processName']),
+                                                            apppath     = cmd_quote(self.props['applicationPath']),
+                                                            args        = cmd_quote(self.props['startArgs']) )
+                if not self.props['forceQuit']:
+                    self.offCmd     = k_daemonStopCmd(      processname = cmd_quote(self.props['processName']) )
+
         #------------------------------------------------------------------------------
         def update(self, doStats=False):
-            self.updateOnOff()
-            if doStats:
-                self.updateStats()
-            self.saveStates()
-            
-        #------------------------------------------------------------------------------
-        def updateOnOff(self):
+            self._refresh = True
+
             self.states['onOffState'] = bool(self.psInfo)
-        
-        #------------------------------------------------------------------------------
-        def updateStats(self):
-            if self.psInfo:
-                stats = re_extract(self.psInfo, k_psInfoGroupsRegex, k_psInfoGroupsKeys)
-                self.status                 = stats['state']
-                self.states['process_id']   = stats['pid']
-                self.states['last_start']   = lstart_to_timestamp(stats['lstart'])
-                self.states['elapsed_time'] = stats['etime']
-                self.states['elapsed_secs'] = etime_to_seconds(stats['etime'])
-                self.states['percent_cpu']  = float(stats['pcpu'])/self.plugin.divisor
-                self.states['percent_mem']  = float(stats['pmem'])
-            else:
-                self.status                 = 'X'
-                self.states['process_id']   = ''
-                self.states['elapsed_time'] = ''
-                self.states['elapsed_secs'] = 0
-                self.states['percent_cpu']  = 0.0
-                self.states['percent_mem']  = 0.0
-            self.states['process_status']   = k_processStatusDict[self.status]['txt']
-        
+
+            if doStats or (self.states['onOffState'] != self.dev.states['onOffState']):
+                if self.psInfo:
+                    stats = re_extract(self.psInfo, k_psInfoGroupsRegex, k_psInfoGroupsKeys)
+                    self.status                 = stats['state']
+                    self.states['process_id']   = stats['pid']
+                    self.states['last_start']   = lstart_to_timestamp(stats['lstart'])
+                    self.states['elapsed_time'] = stats['etime']
+                    self.states['elapsed_secs'] = etime_to_seconds(stats['etime'])
+                    self.states['percent_cpu']  = float(stats['pcpu'])/self.plugin.divisor
+                    self.states['percent_mem']  = float(stats['pmem'])
+                else:
+                    self.status                 = 'X'
+                    self.states['process_id']   = ''
+                    self.states['elapsed_time'] = ''
+                    self.states['elapsed_secs'] = 0
+                    self.states['percent_cpu']  = 0.0
+                    self.states['percent_mem']  = 0.0
+                self.states['process_status']   = k_processStatusDict[self.status]['txt']
+
+            self.saveStates()
+
         #------------------------------------------------------------------------------
         def saveStates(self):
             newStates = []
@@ -302,12 +323,12 @@ class Plugin(indigo.PluginBase):
                         newStates.append({'key':key,'value':value, 'uiValue': '{0} sec'.format(value)})
                     else:
                         newStates.append({'key':key,'value':value})
-                    
+
                     if key == 'onOffState':
                         self.logger.info('"{0}" {1}'.format(self.name, ['off','on'][value]))
                     elif key == 'process_status':
                         self.dev.updateStateImageOnServer(k_processStatusDict[self.status]['img'])
-                
+
             if len(newStates) > 0:
                 if self.plugin.debug: # don't fill up plugin log unless actively debugging
                     self.logger.debug('updating states on device "{0}":'.format(self.name))
@@ -315,16 +336,16 @@ class Plugin(indigo.PluginBase):
                         self.logger.debug('{:>16}: {}'.format(item['key'],item['value']))
                 self.dev.updateStatesOnServer(newStates)
                 self.states = self.dev.states
-        
+
         #------------------------------------------------------------------------------
         # Class Properties
         #------------------------------------------------------------------------------
         def onStateGet(self):
             return self.states['onOffState']
-        
+
         def onStateSet(self,newState):
             if newState != self.onState:
-                success, result = do_shell_script(self.onOffCmds[newState])
+                success, response = do_shell_script([self.offCmd,self.onCmd][newState])
                 if success:
                     self.logger.info('{0} {1} "{2}"'.format(['quitting','launching'][newState], self.type, self.props['applicationName']))
                     self.plugin.refresh_data()
@@ -333,63 +354,45 @@ class Plugin(indigo.PluginBase):
                 else:
                     self.logger.error('failed to {0} {1} "{2}"'.format(['quit','launch'][newState], self.type, self.props['applicationName']))
                     self.logger.debug(response)
-        
+
         onState = property(onStateGet, onStateSet)
-        
-        #------------------------------------------------------------------------------
-        @property
-        def onOffCmds(self):
-            onCmd = offCmd = k_returnFalseCmd(message = "command not configured")
-            if self.type in ['application','helper']:
-                onCmd = k_appOpenCmd(       background  = ['',' -g'][self.props.get('openBackground',True)],
-                                            fresh       = ['',' -F'][self.props.get('openFresh',True)],
-                                            apppath     = cmd_quote(self.props['applicationPath']) )
-            elif self.type =='daemon':
-                onCmd = k_daemonStartCmd(   processname = cmd_quote(self.props['processName']),
-                                            apppath     = cmd_quote(self.props['applicationPath']),
-                                            args        = cmd_quote(self.props['startArgs']) )
-            
-            if self.props['forceQuit']:
-                if self.states['process_id']:
-                    offCmd = k_killCmd(     pid         = self.states['process_id'] )
-            else:
-                if self.type == 'application':
-                    offCmd = k_appQuitCmd(  processname = self.props['processName'] )
-                elif self.type == 'helper':
-                    offCmd = k_killCmd(     pid         = self.states['process_id'] )
-                elif self.type =='daemon':
-                    offCmd = k_daemonStopCmd(processname = cmd_quote(self.props['processName']) )
-            
-            return (offCmd,onCmd)
-        
+
         #------------------------------------------------------------------------------
         @property
         def psInfo(self):
-            match = re.search(self.psPattern, self.plugin.psResults, re.MULTILINE)
-            if match:
-                self._psInfo = match.group(0)
-            else:
-                self.states['process_id'] = ''
-                self._psInfo = None
+            if self._refresh:
+                match = re.search(self.psPattern, self.plugin.psResults, re.MULTILINE)
+                if match:
+                    self._psInfo = match.group(0)
+                else:
+                    self._psInfo = ""
+                self._refresh = False
             return self._psInfo
-    
+
         @property
         def psPattern(self):
-            if self.states['process_id']:
-                return k_psSearch_pid( pid = self.states['process_id'] )
+            if self.pid:
+                return self.pidPattern
             else:
-                if self.type =='application':
-                    return k_psSearch_appname(   processname = self.props['processName'] )
-                elif self.type =='helper':
-                    return k_psSearch_helper(    processname = self.props['processName'] )
-                elif self.type == 'daemon':
-                    return k_psSearch_daemon(    processname = self.props['processName'],
-                                                 args        = self.props['startArgs']   )
-        
-    
+                return self.namePattern
+
+        @property
+        def pid(self):
+            pid = [ "", self.states['process_id'] ][self.states['onOffState']]
+            if pid != self._pid:
+                if pid:
+                    self.pidPattern = k_psSearch_pid(pid = pid)
+                if self.props['forceQuit'] or self.type == 'helper':
+                    if pid:
+                        self.offCmd = k_killCmd(pid = pid)
+                    else:
+                        self.offCmd = k_returnFalseCmd(message = "command not available")
+                self._pid = pid
+            return pid
+
     ###############################################################################
     class SystemLoadDevice(object):
-        
+
         #------------------------------------------------------------------------------
         def __init__(self, instance, plugin):
             self.dev        = instance
@@ -397,28 +400,19 @@ class Plugin(indigo.PluginBase):
             self.type       = self.dev.deviceTypeId
             self.props      = self.dev.pluginProps
             self.states     = self.dev.states
-            
+
             self.plugin     = plugin
             self.logger     = plugin.logger
-            
+
         #------------------------------------------------------------------------------
         def update(self, doStats=False):
-            self.updateOnOff()
             if doStats:
-                self.updateStats()
-            self.saveStates()
-        
-        #------------------------------------------------------------------------------
-        def updateOnOff(self):
-            pass
-        
-        #------------------------------------------------------------------------------
-        def updateStats(self):
-            psData = self.plugin.psResults
-            self.states['percent_cpu']  = sumColumn(psData, k_psInfoGroupsKeys.index('pcpu'))/self.plugin.divisor
-            self.states['percent_mem']  = sumColumn(psData, k_psInfoGroupsKeys.index('pmem'))
-            self.states['displayState'] = "{:.1f}% | {:.1f}%".format(self.states['percent_cpu'],self.states['percent_mem'])
-            
+                psData = self.plugin.psResults
+                self.states['percent_cpu']  = sumColumn(psData, k_psInfoGroupsKeys.index('pcpu'))/self.plugin.divisor
+                self.states['percent_mem']  = sumColumn(psData, k_psInfoGroupsKeys.index('pmem'))
+                self.states['displayState'] = "{:.1f}% | {:.1f}%".format(self.states['percent_cpu'],self.states['percent_mem'])
+                self.saveStates()
+
         #------------------------------------------------------------------------------
         def saveStates(self):
             newStates = []
@@ -428,7 +422,7 @@ class Plugin(indigo.PluginBase):
                         newStates.append({'key':key,'value':value, 'uiValue': '{0}%'.format(value), 'decimalPlaces':1})
                     else:
                         newStates.append({'key':key,'value':value})
-                
+
             if len(newStates) > 0:
                 if self.plugin.debug: # don't fill up plugin log unless actively debugging
                     self.logger.debug('updating states on device "{0}":'.format(self.name))
@@ -436,7 +430,7 @@ class Plugin(indigo.PluginBase):
                         self.logger.debug('{:>16}: {}'.format(item['key'].rjust(16),item['value']))
                 self.dev.updateStatesOnServer(newStates)
                 self.states = self.dev.states
-        
+
         #------------------------------------------------------------------------------
         # Class Properties
         #------------------------------------------------------------------------------
@@ -445,7 +439,7 @@ class Plugin(indigo.PluginBase):
         def onStateSet(self,newState):
             self.logger.error('{0} command not supported for "{1}"'.format(['off','on'][newState], self.name))
         onState = property(onStateGet, onStateSet)
-        
+
 
 
 ###############################################################################
