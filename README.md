@@ -11,7 +11,7 @@ How often to check whether applications are running.
 How often to updtate the statistics in the device states.  Statistics will change every time for running applications, which can mean more communication with Indigo.  Reduce this setting if you start seeing "ServerCommunication" errors in the log.
 
 * **Divide %CPU by cores**  
-By default, Macs report percent cpu of a single core. Enter the number of cores here to make the plugin report a a true percentage of total capacity.
+By default, Macs report percent cpu of a single core. Check the box to make the plugin report a a true percentage of total capacity.
 
 * **Enable debugging**  
 If checked, extensive debug information will be written to the log.
