@@ -284,22 +284,17 @@ class ApplicationDevice(object):
         self._psInfo    = ""
         self._pid       = ""
 
-        self.offCmd     = k_returnFalseCmd(message = "command not available")
-
         if self.type =='application':
             self.namePattern    = k_psSearch_appname(   processname = self.props['processName'] )
             self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
                                                         fresh       = ['',' -F'][self.props.get('openFresh',True)],
                                                         apppath     = cmd_quote(self.props['applicationPath']) )
-            if not self.props['forceQuit']:
-                self.offCmd     = k_appQuitCmd(         processname = self.props['processName'] )
 
         elif self.type =='helper':
             self.namePattern    = k_psSearch_helper(    processname = self.props['processName'] )
             self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
                                                         fresh       = ['',' -F'][self.props.get('openFresh',True)],
                                                         apppath     = cmd_quote(self.props['applicationPath']) )
-            self.offCmd         = k_returnFalseCmd(     message = "command not available" )
 
         elif self.type == 'daemon':
             self.namePattern    = k_psSearch_daemon(    processname = self.props['processName'],
@@ -307,8 +302,6 @@ class ApplicationDevice(object):
             self.onCmd          = k_daemonStartCmd(     processname = cmd_quote(self.props['processName']),
                                                         apppath     = cmd_quote(self.props['applicationPath']),
                                                         args        = cmd_quote(self.props['startArgs']) )
-            if not self.props['forceQuit']:
-                self.offCmd     = k_daemonStopCmd(      processname = cmd_quote(self.props['processName']) )
 
     #------------------------------------------------------------------------------
     def update(self, doStats=False):
@@ -403,13 +396,20 @@ class ApplicationDevice(object):
         if pid != self._pid:
             if pid:
                 self.pidPattern = k_psSearch_pid(pid = pid)
-            if self.props['forceQuit'] or self.type == 'helper':
-                if pid:
-                    self.offCmd = k_killCmd(pid = pid)
-                else:
-                    self.offCmd = k_returnFalseCmd(message = "command not available")
             self._pid = pid
         return pid
+
+    @property
+    def offCmd(self):
+        if not self.props['forceQuit']:
+            if self.type == 'application':
+                return k_appQuitCmd(processname = self.props['processName'])
+            elif self.type == 'daemon':
+                return k_daemonStopCmd(processname = cmd_quote(self.props['processName']))
+        elif self.pid:
+            return k_killCmd(pid = self.pid)
+        else:
+            return k_returnFalseCmd(message = "command not available")
 
 ###############################################################################
 class SystemLoadDevice(object):
