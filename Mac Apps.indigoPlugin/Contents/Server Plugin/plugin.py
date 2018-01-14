@@ -310,7 +310,7 @@ class ApplicationDevice(object):
         self.states['onOffState'] = bool(self.psInfo)
 
         if doStats or (self.onState != self.dev.onState):
-            if self.onState:
+            if self.onState and self.psInfo:
                 stats = re_extract(self.psInfo, k_psInfoGroupsRegex, k_psInfoGroupsKeys)
                 self.status                 = stats['state']
                 self.states['process_id']   = stats['pid']
@@ -383,6 +383,7 @@ class ApplicationDevice(object):
             self._refresh = False
         return self._psInfo
 
+    #------------------------------------------------------------------------------
     @property
     def psPattern(self):
         if self.pid:
@@ -390,6 +391,7 @@ class ApplicationDevice(object):
         else:
             return self.namePattern
 
+    #------------------------------------------------------------------------------
     @property
     def pid(self):
         pid = [ "", self.states['process_id'] ][self.onState]
@@ -399,6 +401,7 @@ class ApplicationDevice(object):
             self._pid = pid
         return pid
 
+    #------------------------------------------------------------------------------
     @property
     def offCmd(self):
         if not self.props['forceQuit']:
