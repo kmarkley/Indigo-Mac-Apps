@@ -154,10 +154,14 @@ class Plugin(indigo.PluginBase):
         if dev.version != self.pluginVersion:
             self.updateDeviceVersion(dev)
         if dev.configured:
-            if dev.deviceTypeId == 'sysload':
-                self.deviceDict[dev.id] = SystemLoadDevice(dev, self)
-            else:
+            if dev.deviceTypeId == 'application':
                 self.deviceDict[dev.id] = ApplicationDevice(dev, self)
+            elif dev.deviceTypeId == 'helper':
+                self.deviceDict[dev.id] = HelperDevice(dev, self)
+            elif dev.deviceTypeId == 'daemon':
+                self.deviceDict[dev.id] = DaemonDevice(dev, self)
+            elif dev.deviceTypeId == 'sysload':
+                self.deviceDict[dev.id] = SystemLoadDevice(dev, self)
             self.deviceDict[dev.id].update(True)
 
     #------------------------------------------------------------------------------
@@ -266,7 +270,7 @@ class Plugin(indigo.PluginBase):
 ###############################################################################
 # Classes
 ###############################################################################
-class ApplicationDevice(object):
+class ApplicationBase(object):
 
     #------------------------------------------------------------------------------
     def __init__(self, instance, plugin):
@@ -283,25 +287,6 @@ class ApplicationDevice(object):
         self._refresh   = True
         self._psInfo    = ""
         self._pid       = ""
-
-        if self.type =='application':
-            self.namePattern    = k_psSearch_appname(   processname = self.props['processName'] )
-            self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
-                                                        fresh       = ['',' -F'][self.props.get('openFresh',True)],
-                                                        apppath     = cmd_quote(self.props['applicationPath']) )
-
-        elif self.type =='helper':
-            self.namePattern    = k_psSearch_helper(    processname = self.props['processName'] )
-            self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
-                                                        fresh       = ['',' -F'][self.props.get('openFresh',True)],
-                                                        apppath     = cmd_quote(self.props['applicationPath']) )
-
-        elif self.type == 'daemon':
-            self.namePattern    = k_psSearch_daemon(    processname = self.props['processName'],
-                                                        args        = self.props['startArgs']   )
-            self.onCmd          = k_daemonStartCmd(     processname = cmd_quote(self.props['processName']),
-                                                        apppath     = cmd_quote(self.props['applicationPath']),
-                                                        args        = cmd_quote(self.props['startArgs']) )
 
     #------------------------------------------------------------------------------
     def update(self, doStats=False):
@@ -405,14 +390,51 @@ class ApplicationDevice(object):
     @property
     def offCmd(self):
         if not self.props['forceQuit']:
-            if self.type == 'application':
-                return k_appQuitCmd(processname = self.props['processName'])
-            elif self.type == 'daemon':
-                return k_daemonStopCmd(processname = cmd_quote(self.props['processName']))
+            return self.defaultOffCmd
         elif self.pid:
             return k_killCmd(pid = self.pid)
         else:
             return k_returnFalseCmd(message = "command not available")
+
+###############################################################################
+class ApplicationDevice(ApplicationBase):
+
+    #-------------------------------------------------------------------------------
+    def __init__(self, instance, plugin):
+        super(ApplicationDevice, self).__init__(instance, plugin)
+
+        self.namePattern    = k_psSearch_appname(   processname = self.props['processName'] )
+        self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
+                                                    fresh       = ['',' -F'][self.props.get('openFresh',True)],
+                                                    apppath     = cmd_quote(self.props['applicationPath']) )
+        self.defaultOffCmd  = k_appQuitCmd(         processname = self.props['processName'])
+
+###############################################################################
+class HelperDevice(ApplicationBase):
+
+    #-------------------------------------------------------------------------------
+    def __init__(self, instance, plugin):
+        super(HelperDevice, self).__init__(instance, plugin)
+
+        self.namePattern    = k_psSearch_helper(    processname = self.props['processName'] )
+        self.onCmd          = k_appOpenCmd(         background  = ['',' -g'][self.props.get('openBackground',True)],
+                                                    fresh       = ['',' -F'][self.props.get('openFresh',True)],
+                                                    apppath     = cmd_quote(self.props['applicationPath']) )
+        self.defaultOffCmd  = k_returnFalseCmd(     message = "command not available")
+
+###############################################################################
+class DaemonDevice(ApplicationBase):
+
+    #-------------------------------------------------------------------------------
+    def __init__(self, instance, plugin):
+        super(DaemonDevice, self).__init__(instance, plugin)
+
+        self.namePattern    = k_psSearch_daemon(    processname = self.props['processName'],
+                                                    args        = self.props['startArgs']   )
+        self.onCmd          = k_daemonStartCmd(     processname = cmd_quote(self.props['processName']),
+                                                    apppath     = cmd_quote(self.props['applicationPath']),
+                                                    args        = cmd_quote(self.props['startArgs']) )
+        self.defaultOffCmd  = k_daemonStopCmd(      processname = cmd_quote(self.props['processName']))
 
 ###############################################################################
 class SystemLoadDevice(object):
