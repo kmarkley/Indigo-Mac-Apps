@@ -127,7 +127,6 @@ class Plugin(indigo.PluginBase):
 
                 if loopStart > self.nextCheck:
                     self.checkForUpdates()
-                    self.nextCheck = loopStart + k_updateCheckHours*60*60
 
                 self.sleep( loopStart + self.stateLoopFreq - time.time() )
         except self.StopThread:
@@ -248,7 +247,16 @@ class Plugin(indigo.PluginBase):
     # Menu Methods
     #-------------------------------------------------------------------------------
     def checkForUpdates(self):
-        self.updater.checkForUpdate()
+        try:
+            self.updater.checkForUpdate()
+        except Exception as e:
+            msg = 'Check for update error.  Next attempt in {} hours.'.format(k_updateCheckHours)
+            if self.debug:
+                self.logger.exception(msg)
+            else:
+                self.logger.error(msg)
+                self.logger.debug(e)
+        self.nextCheck = time.time() + k_updateCheckHours*60*60
 
     #-------------------------------------------------------------------------------
     def updatePlugin(self):
@@ -295,7 +303,7 @@ class ApplicationBase(object):
         self.states['onOffState'] = bool(self.psInfo)
 
         if doStats or (self.onState != self.dev.onState):
-            if self.onState and self.psInfo:
+            if self.onState:
                 stats = re_extract(self.psInfo, k_psInfoGroupsRegex, k_psInfoGroupsKeys)
                 self.status                 = stats['state']
                 self.states['process_id']   = stats['pid']
