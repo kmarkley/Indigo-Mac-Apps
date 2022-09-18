@@ -100,7 +100,7 @@ class Plugin(indigo.PluginBase):
         errorsDict = indigo.Dict()
 
         if len(errorsDict) > 0:
-            self.logger.debug('validate prefs config error: \n{0}'.format(str(errorsDict)))
+            self.logger.debug(f'validate prefs config error: \n{str(errorsDict)}')
             return (False, valuesDict, errorsDict)
         return (True, valuesDict)
 
@@ -129,7 +129,7 @@ class Plugin(indigo.PluginBase):
         if self._psRefresh:
             success, data = do_shell_script(k_psGetDataCmd)
             if success:
-                self._psData = data
+                self._psData = data.decode('utf-8')
                 self._psRefresh = False
         return self._psData
 
@@ -193,7 +193,7 @@ class Plugin(indigo.PluginBase):
                 valuesDict['processName'] = valuesDict['applicationName']
 
         if len(errorsDict) > 0:
-            self.logger.debug('validate device config error: \n{0}'.format(str(errorsDict)))
+            self.logger.debug(f'validate device config error: \n{str(errorsDict)}')
             return (False, valuesDict, errorsDict)
         else:
             return (True, valuesDict)
@@ -227,12 +227,12 @@ class Plugin(indigo.PluginBase):
             appDev.onState = not appDev.onState
         # STATUS REQUEST
         elif action.deviceAction == indigo.kUniversalAction.RequestStatus:
-            self.logger.info('"{0}" status update'.format(dev.name))
+            self.logger.info(f'"{dev.name}" status update')
             self.refresh_data()
             appDev.update(True)
         # UNKNOWN
         else:
-            self.logger.debug('"{0}" {1} request ignored'.format(dev.name, str(action.deviceAction)))
+            self.logger.debug(f'"{dev.name}" {str(action.deviceAction)} request ignored')
 
     #-------------------------------------------------------------------------------
     # Menu Methods
@@ -295,22 +295,22 @@ class ApplicationBase(object):
         for key, value in self.states.iteritems():
             if self.states[key] != self.dev.states[key]:
                 if key in ['percent_cpu','percent_mem']:
-                    newStates.append({'key':key,'value':value, 'uiValue': '{0}%'.format(value), 'decimalPlaces':1})
+                    newStates.append({'key':key,'value':value, 'uiValue': '{value}%', 'decimalPlaces':1})
                 elif key == 'elapsed_secs':
-                    newStates.append({'key':key,'value':value, 'uiValue': '{0} sec'.format(value)})
+                    newStates.append({'key':key,'value':value, 'uiValue': '{value} sec'})
                 else:
                     newStates.append({'key':key,'value':value})
 
                 if key == 'onOffState':
-                    self.logger.info('"{0}" {1}'.format(self.name, ['off','on'][value]))
+                    self.logger.info(f'"{self.name}" {["off","on"][value]}')
                 elif key == 'process_status':
                     self.dev.updateStateImageOnServer(k_processStatusDict[self.status]['img'])
 
         if len(newStates) > 0:
             if self.plugin.debug: # don't fill up plugin log unless actively debugging
-                self.logger.debug('updating states on device "{0}":'.format(self.name))
+                self.logger.debug(f'updating states on device "{self.name}":')
                 for item in newStates:
-                    self.logger.debug('{:>16}: {}'.format(item['key'],item['value']))
+                    self.logger.debug(f'{item["key"]:>16}: {value}')
             self.dev.updateStatesOnServer(newStates)
             self.states = self.dev.states
 
@@ -324,12 +324,12 @@ class ApplicationBase(object):
         if newState != self.onState:
             success, response = do_shell_script([self.offCmd,self.onCmd][newState])
             if success:
-                self.logger.info('{0} {1} "{2}"'.format(['quitting','launching'][newState], self.type, self.props['applicationName']))
+                self.logger.info(f'{["quitting","launching"][newState]} {self.type} "{self.props["applicationName"]}"')
                 self.plugin.refresh_data()
                 self.plugin.sleep(0.25)
                 self.update(True)
             else:
-                self.logger.error('failed to {0} {1} "{2}"'.format(['quit','launch'][newState], self.type, self.props['applicationName']))
+                self.logger.error(f'failed to {["quit","launch"][newState]} {self.type} "{self.props["applicationName"]}"')
                 self.logger.debug(response)
 
     onState = property(onStateGet, onStateSet)
@@ -434,21 +434,21 @@ class SystemLoadDevice(object):
             psData = self.plugin.psResults
             self.states['percent_cpu']  = sumColumn(psData, k_psInfoGroupsKeys.index('pcpu'))/self.plugin.divisor
             self.states['percent_mem']  = sumColumn(psData, k_psInfoGroupsKeys.index('pmem'))
-            self.states['displayState'] = "{:.1f}% | {:.1f}%".format(self.states['percent_cpu'],self.states['percent_mem'])
+            self.states['displayState'] = f"{self.states['percent_cpu']:.1f}% | {self.states['percent_mem']:.1f}%"
 
             newStates = list()
             for key, value in self.states.iteritems():
                 if self.states[key] != self.dev.states[key]:
                     if key in ['percent_cpu','percent_mem']:
-                        newStates.append({'key':key,'value':value, 'uiValue': '{0}%'.format(value), 'decimalPlaces':1})
+                        newStates.append({'key':key,'value':value, 'uiValue': f'{value}%', 'decimalPlaces':1})
                     else:
                         newStates.append({'key':key,'value':value})
 
             if len(newStates) > 0:
                 if self.plugin.debug: # don't fill up plugin log unless actively debugging
-                    self.logger.debug('updating states on device "{0}":'.format(self.name))
+                    self.logger.debug(f'updating states on device "{self.name}":')
                     for item in newStates:
-                        self.logger.debug('{:>16}: {}'.format(item['key'].rjust(16),item['value']))
+                        self.logger.debug(f'{item["key"].rjust(16):>16}: {value}')
                 self.dev.updateStatesOnServer(newStates)
                 self.states = self.dev.states
 
@@ -458,7 +458,7 @@ class SystemLoadDevice(object):
     def onStateGet(self):
         return None
     def onStateSet(self,newState):
-        self.logger.error('{0} command not supported for "{1}"'.format(['off','on'][newState], self.name))
+        self.logger.error(f'{["off","on"][newState]} command not supported for "{self.name}"')
     onState = property(onStateGet, onStateSet)
 
 ###############################################################################
